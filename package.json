@@ -1,0 +1,9 @@
+{
+  "name": "symptoscan",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SymptoScan static site plus lightweight backend and admin dashboard",
+  "scripts": {
+    "start": "node backend/server.js"
+  }
+}

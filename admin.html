@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SymptoScan Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d2135;
+            --panel: #132b43;
+            --panel-soft: #1b3a57;
+            --line: rgba(255, 255, 255, 0.08);
+            --text: #eef7ff;
+            --muted: #a8bfd4;
+            --accent: #6cc7ff;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: "DM Sans", Arial, sans-serif;
+            background: linear-gradient(180deg, #0b1c2c, #153552);
+            color: var(--text);
+        }
+
+        .wrap {
+            width: min(1280px, calc(100% - 32px));
+            margin: 24px auto 40px;
+        }
+
+        .hero {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1, h2 {
+            margin: 0;
+            font-family: "DM Serif Display", Georgia, serif;
+            letter-spacing: -0.03em;
+        }
+
+        p {
+            color: var(--muted);
+        }
+
+        .button {
+            border: none;
+            border-radius: 999px;
+            padding: 12px 18px;
+            background: var(--accent);
+            color: #0d2135;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+
+        .stat, .panel {
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 18px;
+        }
+
+        .stat strong {
+            display: block;
+            font-size: 2rem;
+            margin-top: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .table-wrap {
+            overflow: auto;
+            max-height: 420px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.93rem;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 10px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+        }
+
+        th {
+            color: var(--accent);
+            position: sticky;
+            top: 0;
+            background: var(--panel-soft);
+        }
+
+        code {
+            white-space: pre-wrap;
+            color: #dff4ff;
+        }
+
+        @media (max-width: 920px) {
+            .stats,
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div class="hero">
+            <div>
+                <h1>SymptoScan Admin</h1>
+                <p>View stored users, symptom searches, OTP activity, and future backend events.</p>
+            </div>
+            <button class="button" id="refreshButton" type="button">Refresh Data</button>
+        </div>
+
+        <section class="stats">
+            <div class="stat">
+                <span>Total users</span>
+                <strong id="usersCount">0</strong>
+            </div>
+            <div class="stat">
+                <span>Total searches</span>
+                <strong id="searchesCount">0</strong>
+            </div>
+            <div class="stat">
+                <span>OTP requests</span>
+                <strong id="otpCount">0</strong>
+            </div>
+            <div class="stat">
+                <span>Latest event</span>
+                <strong id="latestEvent">--</strong>
+            </div>
+        </section>
+
+        <section class="grid">
+            <div class="panel">
+                <h2>Users</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Visitor</th>
+                                <th>Searches</th>
+                                <th>Last seen</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Searches</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Email</th>
+                                <th>Symptoms</th>
+                                <th>Result</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="searchesTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Events</h2>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Email</th>
+                                <th>Detail</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody id="eventsTable"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Backend Notes</h2>
+                <p>
+                    This backend is file-based and ready for future prompts. We can expand it later with:
+                </p>
+                <ul>
+                    <li>real database integration</li>
+                    <li>passwordless email delivery</li>
+                    <li>user accounts and profile management</li>
+                    <li>search history filters and exports</li>
+                    <li>real AI model integration</li>
+                    <li>conversation logging and analytics</li>
+                </ul>
+                <p><code>Run locally: npm start</code></p>
+            </div>
+        </section>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

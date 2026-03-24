@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SymptoScan.com | AI Symptom Checker & Modern Care Guidance</title>
+    <meta
+        name="description"
+        content="SymptoScan.com helps people check symptoms, get fast health guidance, and access modern care support in a calm, trusted experience."
+    >
+    <meta
+        name="keywords"
+        content="SymptoScan, AI symptom checker, online health checker, medical guidance, symptom analysis, digital healthcare"
+    >
+    <meta name="author" content="SymptoScan">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#055f5a">
+    <link rel="canonical" href="https://symptoscan.com/">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="SymptoScan.com | AI Symptom Checker & Modern Care Guidance">
+    <meta
+        property="og:description"
+        content="Check symptoms, preview care guidance, and present SymptoScan as a modern healthcare landing page."
+    >
+    <meta property="og:url" content="https://symptoscan.com/">
+    <meta property="og:site_name" content="SymptoScan">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="SymptoScan.com | AI Symptom Checker & Modern Care Guidance">
+    <meta
+        name="twitter:description"
+        content="Fast symptom guidance and a polished digital healthcare experience for SymptoScan."
+    >
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="Frontscan.css">
+    <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "SymptoScan",
+            "url": "https://symptoscan.com/",
+            "description": "AI symptom checker and healthcare guidance website for SymptoScan.",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "https://symptoscan.com/?q={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        }
+    </script>
+</head>
+<body>
+    <input id="imageUpload" type="file" accept="image/*" hidden>
+
+    <div class="page-shell">
+        <div class="top-accent"></div>
+
+        <header class="navbar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true"></div>
+                <div>
+                    <span class="brand-text">symptoscan</span>
+                    <span class="brand-sub">Care Online</span>
+                </div>
+            </div>
+
+            <nav class="nav-links" aria-label="Primary">
+                <a href="#">Locations</a>
+                <a href="#">For You</a>
+                <a href="#">For Kids</a>
+                <a href="#">Business</a>
+            </nav>
+
+            <div class="nav-actions">
+                <a class="ghost-link" href="#">Log in</a>
+                <button class="pill-button primary" type="button">Sign up</button>
+            </div>
+        </header>
+
+        <main class="hero">
+            <section class="hero-copy">
+                <div class="hero-copy-inner">
+                    <div class="eyebrow">
+                        <span class="eyebrow-icon" aria-hidden="true"></span>
+                        <span>Digital Primary Care</span>
+                    </div>
+
+                    <h1>Where healthcare happens 24/7</h1>
+
+                    <p>
+                        SymptoScan helps people get fast guidance, check symptoms,
+                        and connect with modern care in a calm, trustworthy space.
+                    </p>
+
+                    <div class="cta-row">
+                        <button class="pill-button secondary" type="button">Start your check</button>
+                    </div>
+
+                    <div class="offer-note">
+                        Use code <strong>SYMPTOSCAN</strong><br>
+                        <a href="#" id="termsTrigger">Terms and conditions apply.</a> Support is available day and night.
+                    </div>
+
+                    <div class="result-panel" id="result">
+                        Enter symptoms to see a likely condition.
+                    </div>
+
+                    <p class="disclaimer">
+                        This page is for informational support only and is not a medical diagnosis.
+                    </p>
+                </div>
+            </section>
+
+            <section class="hero-visual" aria-label="Clinic scene">
+                <div class="divider-arc" aria-hidden="true"></div>
+                <h2 class="logo-fade">symptoscan</h2>
+
+                <div
+                    class="image-paste-zone"
+                    id="imagePasteZone"
+                    tabindex="0"
+                    role="button"
+                    aria-label="Paste or upload your clinic image"
+                >
+                    <img id="heroPreview" alt="Pasted preview">
+                    <div class="image-overlay" id="imageOverlay">
+                        <span class="overlay-badge">Paste Ready</span>
+                        <h3>Paste your image here</h3>
+                        <p>Click this area, then press Ctrl+V to place your own image.</p>
+                        <button class="pill-button secondary" id="uploadButton" type="button">Or choose a file</button>
+                    </div>
+                </div>
+
+                <div class="checker-card">
+                    <div>
+                        <label for="symptoms">Describe your symptoms</label>
+                        <input
+                            id="symptoms"
+                            type="text"
+                            placeholder="e.g. fever, cough, sore throat"
+                        >
+                    </div>
+                    <button class="pill-button primary" type="button" onclick="checkHealth()">Analyze</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="termsModal" aria-hidden="true">
+        <div class="terms-modal" role="dialog" aria-modal="true" aria-labelledby="termsTitle">
+            <button class="modal-close" id="termsClose" type="button" aria-label="Close terms">
+                x
+            </button>
+            <h3 id="termsTitle">Terms &amp; Conditions</h3>
+            <p>
+                By using SymptoScan, you agree to the following terms:
+            </p>
+            <ul class="terms-list">
+                <li>This tool provides general health information based on user-input symptoms.</li>
+                <li>It is not intended to replace professional medical advice, diagnosis, or treatment.</li>
+                <li>Users should always consult a qualified doctor or healthcare provider for serious or persistent symptoms.</li>
+                <li>The results generated are AI-based and may not always be accurate.</li>
+                <li>We are not responsible for any decisions made based on the information provided by this tool.</li>
+                <li>Do not use this application in emergency situations. In case of emergency, contact medical services immediately.</li>
+                <li>By using this platform, you accept full responsibility for your actions and health decisions.</li>
+            </ul>
+            <p class="terms-footer">
+                This tool provides AI-based health guidance and is not a medical diagnosis.
+                Always consult a doctor for professional advice. We are not responsible for decisions
+                made based on this information.
+            </p>
+        </div>
+    </div>
+    <script src="Sympto.js"></script>
+</body>
+</html>
