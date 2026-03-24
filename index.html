@@ -50,8 +50,6 @@
     </script>
 </head>
 <body>
-    <input id="imageUpload" type="file" accept="image/*" hidden>
-
     <div class="page-shell">
         <div class="top-accent"></div>
 
@@ -102,7 +100,7 @@
                     </div>
 
                     <div class="result-panel" id="result">
-                        Enter symptoms to see a likely condition.
+                        Sign in to access your private care dashboard. Health tools unlock only after login and personal details.
                     </div>
 
                     <p class="disclaimer">
@@ -115,32 +113,41 @@
                 <div class="divider-arc" aria-hidden="true"></div>
                 <h2 class="logo-fade">symptoscan</h2>
 
-                <div
-                    class="image-paste-zone"
-                    id="imagePasteZone"
-                    tabindex="0"
-                    role="button"
-                    aria-label="Paste or upload your clinic image"
-                >
-                    <img id="heroPreview" alt="Pasted preview">
-                    <div class="image-overlay" id="imageOverlay">
-                        <span class="overlay-badge">Paste Ready</span>
-                        <h3>Paste your image here</h3>
-                        <p>Click this area, then press Ctrl+V to place your own image.</p>
-                        <button class="pill-button secondary" id="uploadButton" type="button">Or choose a file</button>
-                    </div>
-                </div>
+                <div class="auth-panel" aria-label="Login or sign up">
+                    <div class="auth-shell">
+                        <span class="overlay-badge">Account Access</span>
+                        <h3>Log in or create your account</h3>
+                        <p>Use your email to save progress, come back later, and keep your health check simple.</p>
 
-                <div class="checker-card">
-                    <div>
-                        <label for="symptoms">Describe your symptoms</label>
-                        <input
-                            id="symptoms"
-                            type="text"
-                            placeholder="e.g. fever, cough, sore throat"
-                        >
+                        <div class="auth-toggle" aria-label="Account options">
+                            <button class="auth-tab is-active" type="button" data-auth-mode="login">Log in</button>
+                            <button class="auth-tab" type="button" data-auth-mode="signup">Sign up</button>
+                        </div>
+
+                        <form class="auth-form" id="authForm">
+                            <label for="authEmail">Email</label>
+                            <input id="authEmail" type="email" placeholder="you@example.com">
+
+                            <div class="signup-only" id="signupFields" hidden>
+                                <div class="auth-inline">
+                                    <div class="auth-inline-field">
+                                        <label for="authOtp">OTP</label>
+                                        <input id="authOtp" type="text" inputmode="numeric" placeholder="Enter the OTP">
+                                    </div>
+                                    <button class="pill-button ghost auth-otp-button" id="requestOtpButton" type="button">Get OTP</button>
+                                </div>
+                            </div>
+
+                            <label for="authPassword">Password</label>
+                            <input id="authPassword" type="password" placeholder="Enter your password">
+                            <p class="auth-helper" id="authHelper" hidden>Create one password here. This same password will be used later for login.</p>
+
+                            <button class="pill-button secondary auth-submit" id="authSubmit" type="button">Continue with Email</button>
+                        </form>
+
+                        <div class="auth-status" id="authStatus" hidden></div>
+                        <p class="auth-note" id="authNote">Private, secure, and designed for quick access.</p>
                     </div>
-                    <button class="pill-button primary" type="button" onclick="checkHealth()">Analyze</button>
                 </div>
             </section>
         </main>
@@ -169,6 +176,61 @@
                 Always consult a doctor for professional advice. We are not responsible for decisions
                 made based on this information.
             </p>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="profileModal" aria-hidden="true">
+        <div class="terms-modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+            <h3 id="profileTitle">Complete your personal details</h3>
+            <p>
+                Save your basic information so your account is ready for future health guidance and admin tracking.
+            </p>
+
+            <form class="profile-form" id="profileForm">
+                <div class="profile-grid">
+                    <div>
+                        <label for="profileName">Name</label>
+                        <input id="profileName" type="text" placeholder="Your full name">
+                    </div>
+                    <div>
+                        <label for="profileGender">Gender</label>
+                        <select id="profileGender" required>
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profilePhone">Phone number</label>
+                        <input id="profilePhone" type="tel" placeholder="+91 98765 43210">
+                    </div>
+                    <div>
+                        <label for="profileAge">Age</label>
+                        <input id="profileAge" type="number" min="0" placeholder="25">
+                    </div>
+                    <div>
+                        <label for="profileBloodGroup">Blood group</label>
+                        <input id="profileBloodGroup" type="text" placeholder="B+, O-, AB+">
+                    </div>
+                    <div>
+                        <label for="profileLocation">City / Location</label>
+                        <input id="profileLocation" type="text" placeholder="Delhi, India">
+                    </div>
+                    <div>
+                        <label for="profileEmergency">Emergency contact</label>
+                        <input id="profileEmergency" type="text" placeholder="Name or phone number">
+                    </div>
+                    <div>
+                        <label for="profileDob">Date of birth</label>
+                        <input id="profileDob" type="date">
+                    </div>
+                </div>
+
+                <div class="auth-status" id="profileStatus" hidden></div>
+                <button class="pill-button primary profile-submit" type="submit">Save details</button>
+            </form>
         </div>
     </div>
     <script src="Sympto.js"></script>

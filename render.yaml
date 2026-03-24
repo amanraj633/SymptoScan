@@ -9,3 +9,15 @@ services:
     envVars:
       - key: NODE_VERSION
         value: 20
+      - key: OTP_EMAIL_PROVIDER
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: RESEND_FROM_EMAIL
+        sync: false
+      - key: GMAIL_EMAIL
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: OTP_FROM_NAME
+        value: SymptoScan

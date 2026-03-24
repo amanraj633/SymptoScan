@@ -29,6 +29,53 @@ This project now fits Render better than plain static hosting because it include
    - `/admin.html`
    - `/api/health`
 
+### OTP email setup on Render
+
+The signup OTP backend now supports two real email providers:
+
+- `Resend`
+- `Gmail SMTP`
+
+Set these environment variables in Render `Settings -> Environment`:
+
+- `OTP_EMAIL_PROVIDER`
+- `OTP_FROM_NAME`
+- `RESEND_API_KEY`
+- `RESEND_FROM_EMAIL`
+- `GMAIL_EMAIL`
+- `GMAIL_APP_PASSWORD`
+
+Use one provider at a time.
+
+#### Option A: Resend
+
+Set:
+
+- `OTP_EMAIL_PROVIDER=resend`
+- `RESEND_API_KEY=your_resend_api_key`
+- `RESEND_FROM_EMAIL=onboarding@yourdomain.com`
+- `OTP_FROM_NAME=SymptoScan`
+
+Notes:
+
+- the sender email must be verified in Resend
+- this is the easiest production option
+
+#### Option B: Gmail SMTP
+
+Set:
+
+- `OTP_EMAIL_PROVIDER=gmail`
+- `GMAIL_EMAIL=yourgmail@gmail.com`
+- `GMAIL_APP_PASSWORD=your_16_character_app_password`
+- `OTP_FROM_NAME=SymptoScan`
+
+Notes:
+
+- use a Gmail App Password, not your normal Gmail password
+- 2-Step Verification must be enabled on the Gmail account
+- Gmail is fine for small testing use, but Resend is usually better for production delivery
+
 ### Connect `symptoscan.com`
 
 1. In Render, open your service.
@@ -64,7 +111,7 @@ This project now also includes a lightweight Node backend for local development 
 
 - identified visitors/users
 - symptom searches and generated results
-- demo OTP requests and verification events
+- OTP requests and delivery events
 - general activity events for future features
 
 ### Run locally with backend
@@ -76,6 +123,14 @@ This project now also includes a lightweight Node backend for local development 
    `http://localhost:3000`
 4. Admin dashboard:
    `http://localhost:3000/admin.html`
+
+### Smoke test the full flow
+
+With the backend running locally, you can verify signup, profile save, search logging, and admin visibility from the terminal:
+
+`npm run smoke:test`
+
+This test works best when OTP delivery is still in demo mode because it reads the returned OTP from the API response.
 
 ### Backend files
 

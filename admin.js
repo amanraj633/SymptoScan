@@ -14,11 +14,11 @@ function formatDate(value) {
     return new Date(value).toLocaleString();
 }
 
-function fillTable(elementId, rows, renderRow) {
+function fillTable(elementId, rows, renderRow, columns) {
     const element = document.getElementById(elementId);
     element.innerHTML = rows.length
         ? rows.map(renderRow).join("")
-        : '<tr><td colspan="4">No data yet.</td></tr>';
+        : `<tr><td colspan="${columns}">No data yet.</td></tr>`;
 }
 
 async function loadAdminDashboard() {
@@ -33,25 +33,28 @@ async function loadAdminDashboard() {
     document.getElementById("usersCount").textContent = overview.usersCount;
     document.getElementById("searchesCount").textContent = overview.searchesCount;
     document.getElementById("otpCount").textContent = overview.otpRequestsCount;
-    document.getElementById("latestEvent").textContent = overview.latestEvent ? overview.latestEvent.type : "--";
+    document.getElementById("profilesCount").textContent = overview.profilesCompleteCount || 0;
 
     fillTable("usersTable", usersRes.users, user => `
         <tr>
             <td>${user.email || "--"}</td>
-            <td>${user.visitorId || "--"}</td>
+            <td>${user.name || "--"}</td>
+            <td>${user.phoneNumber || "--"}</td>
+            <td>${user.bloodGroup || "--"}</td>
             <td>${user.searchesCount || 0}</td>
             <td>${formatDate(user.lastSeenAt)}</td>
         </tr>
-    `);
+    `, 6);
 
     fillTable("searchesTable", searchesRes.searches, search => `
         <tr>
+            <td>${search.name || "--"}</td>
             <td>${search.email || "--"}</td>
             <td>${search.symptoms || "--"}</td>
             <td>${search.result || "--"}</td>
             <td>${formatDate(search.timestamp)}</td>
         </tr>
-    `);
+    `, 5);
 
     fillTable("eventsTable", eventsRes.events, event => `
         <tr>
@@ -60,7 +63,7 @@ async function loadAdminDashboard() {
             <td>${event.detail || "--"}</td>
             <td>${formatDate(event.timestamp)}</td>
         </tr>
-    `);
+    `, 4);
 }
 
 document.getElementById("refreshButton").addEventListener("click", loadAdminDashboard);

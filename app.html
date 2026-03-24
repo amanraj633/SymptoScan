@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SymptoScan Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="Frontscan.css">
+</head>
+<body class="app-body">
+    <div class="app-shell">
+        <header class="app-header">
+            <div>
+                <span class="app-kicker">Private Care Dashboard</span>
+                <h1 class="app-heading">Tell us what you are feeling today</h1>
+                <p class="app-subcopy">Your symptom checks, profile details, and care history stay connected to your account.</p>
+            </div>
+
+            <div class="profile-menu-wrap">
+                <button class="profile-trigger" id="profileTrigger" type="button" aria-expanded="false">
+                    <span class="profile-avatar" id="profileAvatar">S</span>
+                </button>
+
+                <div class="profile-dropdown" id="profileDropdown" hidden>
+                    <button class="profile-option" id="editProfileButton" type="button">Edit profile</button>
+                    <button class="profile-option danger" id="signOutButton" type="button">Sign out</button>
+                </div>
+            </div>
+        </header>
+
+        <main class="app-grid">
+            <section class="app-panel app-panel-primary">
+                <label class="care-label" for="symptoms">Symptom check</label>
+                <div class="app-input-row">
+                    <input id="symptoms" type="text" placeholder="e.g. fever, cough, sore throat">
+                    <button class="pill-button primary" id="analyzeButton" type="button">Analyze</button>
+                </div>
+                <div class="app-result" id="result">Describe your symptoms to get a likely condition.</div>
+            </section>
+
+            <aside class="app-panel app-panel-secondary">
+                <label class="care-label">Account overview</label>
+                <div class="account-summary">
+                    <div class="summary-row">
+                        <span>Name</span>
+                        <strong id="summaryName">--</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Email</span>
+                        <strong id="summaryEmail">--</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Blood group</span>
+                        <strong id="summaryBloodGroup">--</strong>
+                    </div>
+                    <div class="summary-row">
+                        <span>Phone</span>
+                        <strong id="summaryPhone">--</strong>
+                    </div>
+                </div>
+                <p class="app-helper">Use the profile menu to update your details or sign out.</p>
+            </aside>
+        </main>
+    </div>
+
+    <div class="modal-backdrop" id="profileModal" aria-hidden="true">
+        <div class="terms-modal profile-modal" role="dialog" aria-modal="true" aria-labelledby="profileTitle">
+            <h3 id="profileTitle">Complete your personal details</h3>
+            <p>Keep your account details updated so your care history stays organized.</p>
+
+            <form class="profile-form" id="profileForm">
+                <div class="profile-grid">
+                    <div>
+                        <label for="profileName">Name</label>
+                        <input id="profileName" type="text" placeholder="Your full name">
+                    </div>
+                    <div>
+                        <label for="profileGender">Gender</label>
+                        <select id="profileGender" required>
+                            <option value="">Select gender</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                            <option value="Prefer not to say">Prefer not to say</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profilePhone">Phone number</label>
+                        <input id="profilePhone" type="tel" placeholder="+91 98765 43210">
+                    </div>
+                    <div>
+                        <label for="profileAge">Age</label>
+                        <input id="profileAge" type="number" min="0" placeholder="25">
+                    </div>
+                    <div>
+                        <label for="profileBloodGroup">Blood group</label>
+                        <input id="profileBloodGroup" type="text" placeholder="B+, O-, AB+">
+                    </div>
+                    <div>
+                        <label for="profileLocation">City / Location</label>
+                        <input id="profileLocation" type="text" placeholder="Delhi, India">
+                    </div>
+                    <div>
+                        <label for="profileEmergency">Emergency contact</label>
+                        <input id="profileEmergency" type="text" placeholder="Name or phone number">
+                    </div>
+                    <div>
+                        <label for="profileDob">Date of birth</label>
+                        <input id="profileDob" type="date">
+                    </div>
+                </div>
+
+                <div class="auth-status" id="profileStatus" hidden></div>
+                <button class="pill-button primary profile-submit" type="submit">Save details</button>
+            </form>
+        </div>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
