@@ -12,9 +12,15 @@ var profileModal = document.getElementById("profileModal");
 var profileForm = document.getElementById("profileForm");
 var profileStatus = document.getElementById("profileStatus");
 var resultPanel = document.getElementById("result");
+var protectedLinks = document.querySelectorAll(".protected-link");
+var headerLogin = document.getElementById("headerLogin");
+var headerSignup = document.getElementById("headerSignup");
 var termsTrigger = document.getElementById("termsTrigger");
 var termsModal = document.getElementById("termsModal");
 var termsClose = document.getElementById("termsClose");
+var loginRequiredModal = document.getElementById("loginRequiredModal");
+var loginRequiredClose = document.getElementById("loginRequiredClose");
+var loginRequiredAction = document.getElementById("loginRequiredAction");
 var VISITOR_KEY = "symptoscan_visitor_id";
 var AUTH_KEY = "symptoscan_auth_session";
 var authMode = "login";
@@ -130,12 +136,49 @@ function setAuthMode(mode) {
         authSubmit.textContent = mode === "signup" ? "Sign up with Email" : "Continue with Email";
     }
 
+    if (headerLogin) {
+        headerLogin.classList.toggle("is-selected", mode === "login");
+    }
+
+    if (headerSignup) {
+        headerSignup.classList.toggle("secondary", mode !== "signup");
+        headerSignup.classList.toggle("primary", mode === "signup");
+    }
+
     if (authOtp) {
         authOtp.value = "";
     }
 
     setStatus(authStatus, "success", "");
     updateAuthNote();
+}
+
+function focusAuthPanel() {
+    if (authEmail) {
+        authEmail.focus();
+    }
+}
+
+function openLoginRequiredModal(event) {
+    if (event) {
+        event.preventDefault();
+    }
+
+    if (!loginRequiredModal) {
+        return;
+    }
+
+    loginRequiredModal.classList.add("is-open");
+    loginRequiredModal.setAttribute("aria-hidden", "false");
+}
+
+function closeLoginRequiredModal() {
+    if (!loginRequiredModal) {
+        return;
+    }
+
+    loginRequiredModal.classList.remove("is-open");
+    loginRequiredModal.setAttribute("aria-hidden", "true");
 }
 
 function fillProfileForm(user) {
@@ -344,6 +387,39 @@ if (authSubmit) {
     authSubmit.addEventListener("click", submitAuth);
 }
 
+if (headerLogin) {
+    headerLogin.addEventListener("click", function (event) {
+        event.preventDefault();
+        setAuthMode("login");
+        focusAuthPanel();
+    });
+}
+
+if (headerSignup) {
+    headerSignup.addEventListener("click", function () {
+        setAuthMode("signup");
+        focusAuthPanel();
+    });
+}
+
+if (protectedLinks.length) {
+    protectedLinks.forEach(function (link) {
+        link.addEventListener("click", openLoginRequiredModal);
+    });
+}
+
+if (loginRequiredClose) {
+    loginRequiredClose.addEventListener("click", closeLoginRequiredModal);
+}
+
+if (loginRequiredAction) {
+    loginRequiredAction.addEventListener("click", function () {
+        closeLoginRequiredModal();
+        setAuthMode("login");
+        focusAuthPanel();
+    });
+}
+
 if (profileForm) {
     profileForm.addEventListener("submit", saveProfile);
 }
@@ -361,6 +437,14 @@ if (termsTrigger && termsModal && termsClose) {
     document.addEventListener("keydown", function (event) {
         if (event.key === "Escape" && termsModal.classList.contains("is-open")) {
             closeTermsModal();
+        }
+    });
+}
+
+if (loginRequiredModal) {
+    loginRequiredModal.addEventListener("click", function (event) {
+        if (event.target === loginRequiredModal) {
+            closeLoginRequiredModal();
         }
     });
 }

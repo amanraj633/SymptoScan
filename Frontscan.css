@@ -126,6 +126,31 @@ a {
     color: #1a3f3a;
 }
 
+.ghost-link.is-selected {
+    color: var(--teal);
+    font-weight: 700;
+}
+
+.nav-links a {
+    position: relative;
+}
+
+.nav-links a::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -10px;
+    height: 2px;
+    border-radius: 999px;
+    background: transparent;
+    transition: background 0.2s ease;
+}
+
+.nav-links a:hover::after {
+    background: rgba(5, 95, 90, 0.28);
+}
+
 .pill-button {
     display: inline-flex;
     align-items: center;
@@ -768,6 +793,10 @@ h1 {
     width: min(860px, 100%);
 }
 
+.login-required-modal {
+    width: min(520px, 100%);
+}
+
 .profile-form {
     display: grid;
     gap: 18px;
@@ -916,29 +945,75 @@ h1 {
     }
 
     .hero-visual {
-        min-height: 560px;
+        min-height: auto;
+        padding: 96px 0 18px;
     }
 
     .logo-fade {
-        top: 32px;
-        right: 20px;
+        top: 18px;
+        right: 18px;
+        left: 18px;
+        font-size: clamp(2.1rem, 14vw, 4rem);
+        text-align: center;
+        opacity: 0.32;
     }
 
     .auth-panel {
-        top: 74px;
+        position: relative;
+        top: auto;
         left: 16px;
         right: 16px;
-        bottom: 132px;
+        bottom: auto;
         border-radius: 24px;
+        min-height: unset;
     }
 
     .auth-shell {
-        width: calc(100% - 24px);
-        padding: 24px 20px;
+        width: calc(100% - 20px);
+        padding: 18px 16px 20px;
+        gap: 12px;
     }
 
     .auth-shell h3 {
-        font-size: clamp(1.6rem, 8vw, 2.3rem);
+        font-size: clamp(1.45rem, 7vw, 2rem);
+    }
+
+    .auth-shell p {
+        font-size: 0.95rem;
+        line-height: 1.55;
+    }
+
+    .overlay-badge {
+        padding: 6px 12px;
+        font-size: 0.68rem;
+    }
+
+    .auth-toggle {
+        gap: 8px;
+        padding: 5px;
+    }
+
+    .auth-tab {
+        padding: 11px 10px;
+        font-size: 0.92rem;
+    }
+
+    .auth-form {
+        gap: 10px;
+    }
+
+    .auth-form input {
+        padding: 13px 15px;
+        font-size: 0.96rem;
+    }
+
+    .auth-form label {
+        font-size: 0.78rem;
+    }
+
+    .pill-button {
+        padding: 13px 20px;
+        font-size: 0.94rem;
     }
 
     .app-header,
@@ -974,5 +1049,83 @@ h1 {
     .auth-inline,
     .profile-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 520px) {
+    .navbar {
+        gap: 14px;
+    }
+
+    .brand {
+        gap: 10px;
+    }
+
+    .brand-mark {
+        width: 32px;
+        height: 32px;
+    }
+
+    .brand-mark::before {
+        width: 14px;
+        height: 3px;
+        top: 14px;
+        left: 9px;
+    }
+
+    .brand-mark::after {
+        width: 3px;
+        height: 14px;
+        top: 9px;
+        left: 14px;
+    }
+
+    .brand-text {
+        font-size: 1.6rem;
+    }
+
+    .brand-sub {
+        display: block;
+        margin-left: 0;
+        margin-top: 2px;
+        font-size: 0.84rem;
+    }
+
+    .nav-links {
+        font-size: 0.88rem;
+        gap: 12px 16px;
+    }
+
+    .nav-actions {
+        gap: 10px;
+    }
+
+    .ghost-link,
+    .nav-actions .pill-button {
+        font-size: 0.9rem;
+    }
+
+    .hero-copy {
+        padding: 38px 18px 34px;
+    }
+
+    .hero-visual {
+        padding-top: 82px;
+    }
+
+    .auth-panel {
+        left: 10px;
+        right: 10px;
+        border-radius: 20px;
+    }
+
+    .auth-shell {
+        width: calc(100% - 12px);
+        padding: 16px 14px 18px;
+    }
+
+    .logo-fade {
+        top: 12px;
+        font-size: clamp(1.8rem, 13vw, 3.2rem);
     }
 }

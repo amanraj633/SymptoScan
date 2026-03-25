@@ -63,15 +63,15 @@
             </div>
 
             <nav class="nav-links" aria-label="Primary">
-                <a href="#">Locations</a>
-                <a href="#">For You</a>
-                <a href="#">For Kids</a>
-                <a href="#">Business</a>
+                <a href="#" class="protected-link">Locations</a>
+                <a href="#" class="protected-link">For You</a>
+                <a href="#" class="protected-link">For Kids</a>
+                <a href="#" class="protected-link">Services</a>
             </nav>
 
             <div class="nav-actions">
-                <a class="ghost-link" href="#">Log in</a>
-                <button class="pill-button primary" type="button">Sign up</button>
+                <a class="ghost-link" href="#" id="headerLogin">Log in</a>
+                <button class="pill-button primary" id="headerSignup" type="button">Sign up</button>
             </div>
         </header>
 
@@ -176,6 +176,19 @@
                 Always consult a doctor for professional advice. We are not responsible for decisions
                 made based on this information.
             </p>
+        </div>
+    </div>
+
+    <div class="modal-backdrop" id="loginRequiredModal" aria-hidden="true">
+        <div class="terms-modal login-required-modal" role="dialog" aria-modal="true" aria-labelledby="loginRequiredTitle">
+            <button class="modal-close" id="loginRequiredClose" type="button" aria-label="Close login notice">
+                x
+            </button>
+            <h3 id="loginRequiredTitle">Please login first</h3>
+            <p>
+                This section is available only after login. Sign in or create your account to use locations, for you, for kids, and services.
+            </p>
+            <button class="pill-button primary" id="loginRequiredAction" type="button">Go to login</button>
         </div>
     </div>
 
