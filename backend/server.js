@@ -322,6 +322,51 @@ async function extractSymptomsWithGemini(symptoms) {
     return text || null;
 }
 
+async function generateCareAdviceWithGemini(symptoms, primaryCondition) {
+    if (!GEMINI_API_KEY) {
+        return "";
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: [
+                                "You are writing brief symptom-support guidance for a health support app.",
+                                "Do not claim a confirmed diagnosis.",
+                                "Suggest only general self-care and common over-the-counter medicine options for a general adult when usually appropriate.",
+                                "Do not include dosages.",
+                                "Do not suggest antibiotics or prescription medicines.",
+                                "Include red flags for when to see a doctor urgently.",
+                                "Keep it concise and practical.",
+                                `Likely condition: ${primaryCondition}`,
+                                `User symptoms: ${symptoms}`
+                            ].join("\n")
+                        }
+                    ]
+                }
+            ]
+        })
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+        throw new Error((data && data.error && data.error.message) || "Gemini care guidance failed.");
+    }
+
+    const candidate = data.candidates && data.candidates[0];
+    const part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];
+    const text = part && typeof part.text === "string" ? part.text.trim() : "";
+    return text || "";
+}
+
 function buildInfermedicaHeaders(interviewId) {
     return {
         "App-Id": INFERMEDICA_APP_ID,
@@ -460,6 +505,53 @@ function buildFallbackCondition(symptoms) {
     return "Common viral illness";
 }
 
+function buildFallbackCareAdvice(symptoms, primaryCondition) {
+    const text = symptoms.toLowerCase();
+    const lines = [];
+
+    lines.push("Suggested care:");
+
+    if (
+        text.includes("sore throat") ||
+        text.includes("throat pain") ||
+        text.includes("gale") ||
+        text.includes("swallow") ||
+        text.includes("nigalte") ||
+        text.includes("pain when drinking")
+    ) {
+        lines.push("- Warm water, warm tea, and salt-water gargles may help soothe the throat.");
+        lines.push("- Rest your voice and avoid very cold, spicy, or irritating foods for now.");
+        lines.push("- Common OTC options for adults that may help are acetaminophen/paracetamol or ibuprofen if these are normally safe for you.");
+        lines.push("- Throat lozenges or soothing cough syrups may also help with throat discomfort.");
+        lines.push("- Antibiotics are usually not helpful for a typical viral sore throat unless a doctor confirms a bacterial infection.");
+        lines.push("- See a doctor urgently if you have trouble breathing, trouble swallowing saliva, severe swelling, dehydration, high fever, or symptoms that keep getting worse.");
+        return lines.join("\n");
+    }
+
+    if (text.includes("fever") || text.includes("cough") || primaryCondition.toLowerCase().includes("viral")) {
+        lines.push("- Rest, fluids, and light meals are usually the first step.");
+        lines.push("- Common OTC options for adults that may help are acetaminophen/paracetamol or ibuprofen if these are normally safe for you.");
+        lines.push("- Honey, warm fluids, and throat lozenges may help if you also have a cough or throat irritation.");
+        lines.push("- Antibiotics do not treat viral illnesses and should not be started unless prescribed.");
+        lines.push("- Seek medical care if you develop breathing trouble, dehydration, chest pain, fever lasting several days, or worsening symptoms.");
+        return lines.join("\n");
+    }
+
+    if (text.includes("stomach") || text.includes("nausea") || text.includes("vomit") || text.includes("vomiting")) {
+        lines.push("- Sip water or oral rehydration solution slowly and avoid oily or spicy foods.");
+        lines.push("- Eat light foods only if you can tolerate them.");
+        lines.push("- Avoid self-starting antibiotics unless a doctor prescribes them.");
+        lines.push("- Seek medical care if vomiting is persistent, there is blood, severe abdominal pain, or signs of dehydration.");
+        return lines.join("\n");
+    }
+
+    lines.push("- Rest, fluids, and simple symptom relief are usually the safest first steps.");
+    lines.push("- For general adult pain or fever relief, common OTC options may include acetaminophen/paracetamol or ibuprofen if these are normally safe for you.");
+    lines.push("- Avoid starting antibiotics unless a doctor confirms they are needed.");
+    lines.push("- Please see a doctor promptly if symptoms are severe, unusual, or getting worse.");
+    return lines.join("\n");
+}
+
 function formatAnalysisResult(summary) {
     const lines = [];
 
@@ -467,6 +559,11 @@ function formatAnalysisResult(summary) {
 
     if (summary.cleanedSymptoms) {
         lines.push(`Symptoms recognized: ${summary.cleanedSymptoms}`);
+    }
+
+    if (summary.careAdvice) {
+        lines.push("");
+        lines.push(summary.careAdvice);
     }
 
     if (summary.matches && summary.matches.length) {
@@ -513,6 +610,7 @@ async function analyzeSymptoms(payload, request) {
         usedGemini: false,
         usedInfermedica: false,
         usedGooglePlaces: false,
+        careAdvice: "",
         missingProfileData: {
             age: !ageValue,
             gender: !sex,
@@ -554,6 +652,16 @@ async function analyzeSymptoms(payload, request) {
         } catch (error) {
             summary.infermedicaError = error.message;
         }
+    }
+
+    try {
+        summary.careAdvice = await generateCareAdviceWithGemini(symptoms, summary.primaryCondition);
+    } catch (error) {
+        summary.careAdviceError = error.message;
+    }
+
+    if (!summary.careAdvice) {
+        summary.careAdvice = buildFallbackCareAdvice(symptoms, summary.primaryCondition);
     }
 
     if (location) {
