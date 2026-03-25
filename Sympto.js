@@ -325,6 +325,12 @@ function requestSignupOtp() {
         visitorId: getVisitorId()
     }, false).then(function (data) {
         var message = data.note || ("OTP requested for " + email + ".");
+        if (data.otp) {
+            message = message + " Demo OTP: " + data.otp;
+            if (authOtp) {
+                authOtp.value = data.otp;
+            }
+        }
         setStatus(authStatus, "success", message);
     }).catch(function (error) {
         setStatus(authStatus, "error", error.message);
