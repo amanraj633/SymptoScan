@@ -1430,7 +1430,16 @@ function buildOverview(db) {
         otpRequestsCount: db.otpSessions.length,
         profilesCompleteCount: db.users.filter(item => item.profileComplete).length,
         totalUsageCount: db.users.reduce((sum, item) => sum + Number(item.usageCount || 0), 0),
-        latestEvent: db.events[0] || null
+        latestEvent: db.events[0] || null,
+        systemStatus: {
+            otpProvider: getMailProvider(),
+            adminPath: "/admin.html",
+            resendConfigured: Boolean(RESEND_API_KEY && RESEND_FROM_EMAIL),
+            gmailConfigured: Boolean(GMAIL_EMAIL && GMAIL_APP_PASSWORD),
+            geminiConfigured: Boolean(GEMINI_API_KEY),
+            infermedicaConfigured: Boolean(INFERMEDICA_APP_ID && INFERMEDICA_APP_KEY),
+            googlePlacesConfigured: Boolean(GOOGLE_MAPS_API_KEY)
+        }
     };
 }
 

@@ -149,6 +149,34 @@
             color: #dff4ff;
         }
 
+        .status-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--line);
+            color: var(--muted);
+        }
+
+        .status-row strong {
+            color: var(--text);
+            text-align: right;
+        }
+
+        .status-ok {
+            color: #8ee6b4;
+        }
+
+        .status-warn {
+            color: #ffd37a;
+        }
+
         @media (max-width: 920px) {
             .stats,
             .grid {
@@ -275,18 +303,38 @@
             </div>
 
             <div class="panel">
-                <h2>Backend Notes</h2>
-                <p>
-                    This backend is file-based and ready for future prompts. We can expand it later with:
-                </p>
-                <ul>
-                    <li>real database integration</li>
-                    <li>real email OTP delivery with SMTP or API credentials</li>
-                    <li>user accounts and profile management</li>
-                    <li>search history filters and exports</li>
-                    <li>real AI model integration</li>
-                    <li>conversation logging and analytics</li>
-                </ul>
+                <h2>System Status</h2>
+                <p>Quick configuration details for admin access, OTP delivery, and external APIs.</p>
+                <div class="status-list">
+                    <div class="status-row">
+                        <span>Admin link</span>
+                        <strong id="adminLinkValue">/admin.html</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>OTP delivery mode</span>
+                        <strong id="otpProviderValue">demo</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>Resend configured</span>
+                        <strong id="resendStatus">No</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>Gmail configured</span>
+                        <strong id="gmailStatus">No</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>Gemini configured</span>
+                        <strong id="geminiStatus">No</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>Infermedica configured</span>
+                        <strong id="infermedicaStatus">No</strong>
+                    </div>
+                    <div class="status-row">
+                        <span>Google Places configured</span>
+                        <strong id="googlePlacesStatus">No</strong>
+                    </div>
+                </div>
                 <p><code>Run locally: npm start</code></p>
             </div>
         </section>

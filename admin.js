@@ -59,6 +59,12 @@ function formatDate(value) {
     return new Date(value).toLocaleString();
 }
 
+function setStatusValue(elementId, enabled) {
+    const element = document.getElementById(elementId);
+    element.textContent = enabled ? "Yes" : "No";
+    element.className = enabled ? "status-ok" : "status-warn";
+}
+
 function fillTable(elementId, rows, renderRow, columns) {
     const element = document.getElementById(elementId);
     element.innerHTML = rows.length
@@ -80,6 +86,15 @@ async function loadAdminDashboard() {
     document.getElementById("otpCount").textContent = overview.otpRequestsCount;
     document.getElementById("profilesCount").textContent = overview.profilesCompleteCount || 0;
     document.getElementById("usageCount").textContent = overview.totalUsageCount || 0;
+
+    const systemStatus = overview.systemStatus || {};
+    document.getElementById("adminLinkValue").textContent = systemStatus.adminPath || "/admin.html";
+    document.getElementById("otpProviderValue").textContent = systemStatus.otpProvider || "demo";
+    setStatusValue("resendStatus", Boolean(systemStatus.resendConfigured));
+    setStatusValue("gmailStatus", Boolean(systemStatus.gmailConfigured));
+    setStatusValue("geminiStatus", Boolean(systemStatus.geminiConfigured));
+    setStatusValue("infermedicaStatus", Boolean(systemStatus.infermedicaConfigured));
+    setStatusValue("googlePlacesStatus", Boolean(systemStatus.googlePlacesConfigured));
 
     fillTable("usersTable", usersRes.users, user => `
         <tr>
