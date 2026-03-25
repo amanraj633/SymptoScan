@@ -61,7 +61,7 @@
 
         .stats {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 14px;
             margin-bottom: 20px;
         }
@@ -94,6 +94,40 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.93rem;
+        }
+
+        .login-panel {
+            max-width: 460px;
+            margin: 60px auto;
+        }
+
+        .login-form {
+            display: grid;
+            gap: 14px;
+        }
+
+        .login-form label {
+            font-size: 0.82rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .login-form input {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text);
+            font: 500 1rem/1.2 "DM Sans", Arial, sans-serif;
+        }
+
+        .login-status {
+            min-height: 24px;
+            color: #ffcdc4;
+            font-weight: 600;
         }
 
         th, td {
@@ -129,13 +163,36 @@
     </style>
 </head>
 <body>
-    <div class="wrap">
+    <div class="wrap" id="adminLoginWrap">
+        <div class="panel login-panel">
+            <h1>SymptoScan Admin</h1>
+            <p>Admin data is protected. Log in first to view users, searches, and usage history.</p>
+
+            <form class="login-form" id="adminLoginForm">
+                <div>
+                    <label for="adminEmail">Admin email</label>
+                    <input id="adminEmail" type="email" placeholder="admin@symptoscan.com">
+                </div>
+                <div>
+                    <label for="adminPassword">Admin password</label>
+                    <input id="adminPassword" type="password" placeholder="Enter admin password">
+                </div>
+                <div class="login-status" id="adminLoginStatus"></div>
+                <button class="button" id="adminLoginButton" type="submit">Log in</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="wrap" id="adminDashboard" hidden>
         <div class="hero">
             <div>
                 <h1>SymptoScan Admin</h1>
-                <p>View stored users, symptom searches, OTP activity, and future backend events.</p>
+                <p>View stored users, symptom searches, usage activity, and backend events.</p>
             </div>
-            <button class="button" id="refreshButton" type="button">Refresh Data</button>
+            <div>
+                <button class="button" id="refreshButton" type="button">Refresh Data</button>
+                <button class="button" id="adminLogoutButton" type="button">Sign out</button>
+            </div>
         </div>
 
         <section class="stats">
@@ -155,6 +212,10 @@
                 <span>Profiles complete</span>
                 <strong id="profilesCount">0</strong>
             </div>
+            <div class="stat">
+                <span>Total usage</span>
+                <strong id="usageCount">0</strong>
+            </div>
         </section>
 
         <section class="grid">
@@ -168,6 +229,7 @@
                                 <th>Name</th>
                                 <th>Phone</th>
                                 <th>Blood group</th>
+                                <th>Usage</th>
                                 <th>Searches</th>
                                 <th>Last seen</th>
                             </tr>

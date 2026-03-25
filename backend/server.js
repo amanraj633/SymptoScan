@@ -14,6 +14,8 @@ const RESEND_FROM_EMAIL = (process.env.RESEND_FROM_EMAIL || "").trim();
 const GMAIL_EMAIL = (process.env.GMAIL_EMAIL || "").trim();
 const GMAIL_APP_PASSWORD = (process.env.GMAIL_APP_PASSWORD || "").trim();
 const OTP_FROM_NAME = (process.env.OTP_FROM_NAME || "SymptoScan").trim();
+const ADMIN_EMAIL = normalizeAdminValue(process.env.ADMIN_EMAIL) || "admin@symptoscan.com";
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "admin123").trim();
 
 let gmailTransporter = null;
 
@@ -42,6 +44,7 @@ function ensureStorage() {
             searches: [],
             otpSessions: [],
             sessions: [],
+            adminSessions: [],
             events: []
         });
     }
@@ -57,6 +60,10 @@ function createId(prefix) {
 
 function hashPassword(password) {
     return crypto.createHash("sha256").update(String(password)).digest("hex");
+}
+
+function normalizeAdminValue(value) {
+    return typeof value === "string" ? value.trim().toLowerCase() : "";
 }
 
 function getMailProvider() {
@@ -228,6 +235,7 @@ function normalizeUser(user) {
         createdAt: user.createdAt || nowIso(),
         lastSeenAt: user.lastSeenAt || user.createdAt || nowIso(),
         searchesCount: Number(user.searchesCount || 0),
+        usageCount: Number(user.usageCount || 0),
         ipAddress: user.ipAddress || null,
         profile: {
             name: user.name || profile.name || null,
@@ -250,6 +258,7 @@ function readDb() {
     db.searches = Array.isArray(db.searches) ? db.searches : [];
     db.otpSessions = Array.isArray(db.otpSessions) ? db.otpSessions : [];
     db.sessions = Array.isArray(db.sessions) ? db.sessions : [];
+    db.adminSessions = Array.isArray(db.adminSessions) ? db.adminSessions : [];
     db.events = Array.isArray(db.events) ? db.events : [];
 
     return db;
@@ -329,6 +338,7 @@ function sanitizeUserForClient(user) {
         profileComplete: user.profileComplete,
         emailVerified: user.emailVerified,
         searchesCount: user.searchesCount,
+        usageCount: user.usageCount,
         createdAt: user.createdAt,
         lastSeenAt: user.lastSeenAt,
         profile: {
@@ -360,6 +370,7 @@ function sanitizeUserForAdmin(user) {
         emailVerified: user.emailVerified,
         profileComplete: user.profileComplete,
         searchesCount: user.searchesCount,
+        usageCount: user.usageCount,
         createdAt: user.createdAt,
         lastSeenAt: user.lastSeenAt,
         ipAddress: user.ipAddress
@@ -391,6 +402,23 @@ function createSession(db, user, request) {
     return session;
 }
 
+function createAdminSession(db, request) {
+    const token = createId("admin_session");
+    const session = {
+        id: createId("admin_auth"),
+        token,
+        email: ADMIN_EMAIL,
+        createdAt: nowIso(),
+        lastSeenAt: nowIso(),
+        ipAddress: getClientIp(request)
+    };
+
+    db.adminSessions = Array.isArray(db.adminSessions) ? db.adminSessions : [];
+    db.adminSessions.unshift(session);
+    db.adminSessions = db.adminSessions.slice(0, 50);
+    return session;
+}
+
 function getAuthenticatedUser(db, request) {
     const token = getBearerToken(request);
     if (!token) {
@@ -411,6 +439,22 @@ function getAuthenticatedUser(db, request) {
     user.lastSeenAt = nowIso();
 
     return { session, user };
+}
+
+function getAuthenticatedAdmin(db, request) {
+    const token = getBearerToken(request);
+    if (!token) {
+        return null;
+    }
+
+    db.adminSessions = Array.isArray(db.adminSessions) ? db.adminSessions : [];
+    const session = db.adminSessions.find(item => item.token === token);
+    if (!session) {
+        return null;
+    }
+
+    session.lastSeenAt = nowIso();
+    return session;
 }
 
 function upsertUserInDb(db, payload, request) {
@@ -435,6 +479,7 @@ function upsertUserInDb(db, payload, request) {
     user.email = email || user.email;
     user.lastSeenAt = nowIso();
     user.ipAddress = getClientIp(request);
+    user.usageCount += 1;
 
     if (normalizeString(payload.name)) {
         user.name = normalizeString(payload.name);
@@ -515,6 +560,30 @@ async function requestOtp(payload, request) {
     };
 }
 
+function loginAdmin(payload, request) {
+    const db = readDb();
+    const email = normalizeAdminValue(payload.email);
+    const password = String(payload.password || "").trim();
+
+    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
+        return { statusCode: 401, body: { ok: false, error: "Invalid admin email or password." } };
+    }
+
+    const session = createAdminSession(db, request);
+    writeDb(db);
+
+    return {
+        statusCode: 200,
+        body: {
+            ok: true,
+            session: {
+                token: session.token,
+                email: ADMIN_EMAIL
+            }
+        }
+    };
+}
+
 function findOtpSession(db, email, otp, purpose) {
     return db.otpSessions.find(item => item.email === email && item.otp === otp && item.purpose === purpose && !item.verified);
 }
@@ -559,6 +628,7 @@ function signupUser(payload, request) {
     user.emailVerified = true;
     user.lastSeenAt = nowIso();
     user.ipAddress = getClientIp(request);
+    user.usageCount += 1;
 
     const session = createSession(db, user, request);
 
@@ -609,6 +679,7 @@ function loginWithOtp(payload, request) {
     otpSession.verified = true;
     user.lastSeenAt = nowIso();
     user.ipAddress = getClientIp(request);
+    user.usageCount += 1;
 
     const session = createSession(db, user, request);
 
@@ -715,6 +786,7 @@ function updateProfile(payload, request) {
     user.profileComplete = Boolean(user.name && user.gender && user.phoneNumber && user.bloodGroup);
     user.lastSeenAt = nowIso();
     user.ipAddress = getClientIp(request);
+    user.usageCount += 1;
 
     recordEvent(db, {
         type: "profile_updated",
@@ -777,6 +849,7 @@ function logSearch(payload, request) {
 
     user.lastSeenAt = nowIso();
     user.searchesCount += 1;
+    user.usageCount += 1;
 
     const search = {
         id: createId("search"),
@@ -811,12 +884,65 @@ function logSearch(payload, request) {
     };
 }
 
+function getUserSearches(request) {
+    const db = readDb();
+    const auth = getAuthenticatedUser(db, request);
+
+    if (!auth) {
+        return { statusCode: 401, body: { ok: false, error: "Authentication required." } };
+    }
+
+    const searches = db.searches.filter(item => item.userId === auth.user.id);
+    return {
+        statusCode: 200,
+        body: {
+            ok: true,
+            searches
+        }
+    };
+}
+
+function deleteUserSearch(request, pathname) {
+    const db = readDb();
+    const auth = getAuthenticatedUser(db, request);
+
+    if (!auth) {
+        return { statusCode: 401, body: { ok: false, error: "Authentication required." } };
+    }
+
+    const prefix = "/api/my/searches/";
+    const searchId = pathname.startsWith(prefix) ? decodeURIComponent(pathname.slice(prefix.length)) : "";
+    const initialLength = db.searches.length;
+    db.searches = db.searches.filter(item => !(item.userId === auth.user.id && item.id === searchId));
+
+    if (db.searches.length === initialLength) {
+        return { statusCode: 404, body: { ok: false, error: "Search entry not found." } };
+    }
+
+    writeDb(db);
+    return { statusCode: 200, body: { ok: true } };
+}
+
+function clearUserSearches(request) {
+    const db = readDb();
+    const auth = getAuthenticatedUser(db, request);
+
+    if (!auth) {
+        return { statusCode: 401, body: { ok: false, error: "Authentication required." } };
+    }
+
+    db.searches = db.searches.filter(item => item.userId !== auth.user.id);
+    writeDb(db);
+    return { statusCode: 200, body: { ok: true } };
+}
+
 function buildOverview(db) {
     return {
         usersCount: db.users.length,
         searchesCount: db.searches.length,
         otpRequestsCount: db.otpSessions.length,
         profilesCompleteCount: db.users.filter(item => item.profileComplete).length,
+        totalUsageCount: db.users.reduce((sum, item) => sum + Number(item.usageCount || 0), 0),
         latestEvent: db.events[0] || null
     };
 }
@@ -880,6 +1006,13 @@ const server = http.createServer(async (request, response) => {
             return;
         }
 
+        if (pathname === "/api/admin/login" && request.method === "POST") {
+            const payload = await parseBody(request);
+            const result = loginAdmin(payload, request);
+            sendJson(response, result.statusCode, result.body);
+            return;
+        }
+
         if (pathname === "/api/auth/login" && request.method === "POST") {
             const payload = await parseBody(request);
             const result = loginUser(payload, request);
@@ -908,28 +1041,50 @@ const server = http.createServer(async (request, response) => {
             return;
         }
 
-        if (pathname === "/api/admin/overview" && request.method === "GET") {
-            const db = readDb();
-            sendJson(response, 200, { ok: true, overview: buildOverview(db) });
+        if (pathname === "/api/my/searches" && request.method === "GET") {
+            const result = getUserSearches(request);
+            sendJson(response, result.statusCode, result.body);
             return;
         }
 
-        if (pathname === "/api/admin/users" && request.method === "GET") {
-            const db = readDb();
-            sendJson(response, 200, { ok: true, users: db.users.map(sanitizeUserForAdmin) });
+        if (pathname === "/api/my/searches" && request.method === "DELETE") {
+            const result = clearUserSearches(request);
+            sendJson(response, result.statusCode, result.body);
             return;
         }
 
-        if (pathname === "/api/admin/searches" && request.method === "GET") {
-            const db = readDb();
-            sendJson(response, 200, { ok: true, searches: db.searches });
+        if (pathname.startsWith("/api/my/searches/") && request.method === "DELETE") {
+            const result = deleteUserSearch(request, pathname);
+            sendJson(response, result.statusCode, result.body);
             return;
         }
 
-        if (pathname === "/api/admin/events" && request.method === "GET") {
+        if (pathname.startsWith("/api/admin/")) {
             const db = readDb();
-            sendJson(response, 200, { ok: true, events: db.events });
-            return;
+            if (!getAuthenticatedAdmin(db, request)) {
+                sendJson(response, 401, { ok: false, error: "Admin authentication required." });
+                return;
+            }
+
+            if (pathname === "/api/admin/overview" && request.method === "GET") {
+                sendJson(response, 200, { ok: true, overview: buildOverview(db) });
+                return;
+            }
+
+            if (pathname === "/api/admin/users" && request.method === "GET") {
+                sendJson(response, 200, { ok: true, users: db.users.map(sanitizeUserForAdmin) });
+                return;
+            }
+
+            if (pathname === "/api/admin/searches" && request.method === "GET") {
+                sendJson(response, 200, { ok: true, searches: db.searches });
+                return;
+            }
+
+            if (pathname === "/api/admin/events" && request.method === "GET") {
+                sendJson(response, 200, { ok: true, events: db.events });
+                return;
+            }
         }
 
         serveStatic(request, response, pathname);

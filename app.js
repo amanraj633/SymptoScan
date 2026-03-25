@@ -3,16 +3,22 @@ var resultPanel = document.getElementById("result");
 var analyzeButton = document.getElementById("analyzeButton");
 var profileTrigger = document.getElementById("profileTrigger");
 var profileDropdown = document.getElementById("profileDropdown");
-var editProfileButton = document.getElementById("editProfileButton");
+var myProfileButton = document.getElementById("myProfileButton");
 var signOutButton = document.getElementById("signOutButton");
 var profileAvatar = document.getElementById("profileAvatar");
 var profileModal = document.getElementById("profileModal");
 var profileForm = document.getElementById("profileForm");
 var profileStatus = document.getElementById("profileStatus");
+var accountModal = document.getElementById("accountModal");
+var accountClose = document.getElementById("accountClose");
+var accountEditProfileButton = document.getElementById("accountEditProfileButton");
+var historyList = document.getElementById("historyList");
 var summaryName = document.getElementById("summaryName");
 var summaryEmail = document.getElementById("summaryEmail");
 var summaryBloodGroup = document.getElementById("summaryBloodGroup");
 var summaryPhone = document.getElementById("summaryPhone");
+var summaryGender = document.getElementById("summaryGender");
+var summaryLocation = document.getElementById("summaryLocation");
 var AUTH_KEY = "symptoscan_auth_session";
 var VISITOR_KEY = "symptoscan_visitor_id";
 var authSession = loadAuthSession();
@@ -97,6 +103,36 @@ function postJson(url, payload, includeAuth) {
     });
 }
 
+function fetchJson(url, includeAuth) {
+    return fetch(url, {
+        method: "GET",
+        headers: includeAuth ? buildHeaders(true) : undefined
+    }).then(function (response) {
+        return response.json().then(function (data) {
+            if (!response.ok) {
+                throw new Error(data.error || "Request failed.");
+            }
+
+            return data;
+        });
+    });
+}
+
+function deleteJson(url, includeAuth) {
+    return fetch(url, {
+        method: "DELETE",
+        headers: includeAuth ? buildHeaders(true) : undefined
+    }).then(function (response) {
+        return response.json().then(function (data) {
+            if (!response.ok) {
+                throw new Error(data.error || "Request failed.");
+            }
+
+            return data;
+        });
+    });
+}
+
 function goHome() {
     window.location.href = "/";
 }
@@ -130,6 +166,8 @@ function updateSummary() {
     summaryEmail.textContent = user.email || "--";
     summaryBloodGroup.textContent = profile.bloodGroup || "--";
     summaryPhone.textContent = profile.phoneNumber || "--";
+    summaryGender.textContent = profile.gender || "--";
+    summaryLocation.textContent = profile.location || "--";
 }
 
 function closeProfileDropdown() {
@@ -157,6 +195,67 @@ function openProfileModal() {
 function closeProfileModal() {
     profileModal.classList.remove("is-open");
     profileModal.setAttribute("aria-hidden", "true");
+}
+
+function openAccountModal() {
+    if (!accountModal) {
+        return;
+    }
+
+    updateSummary();
+    accountModal.classList.add("is-open");
+    accountModal.setAttribute("aria-hidden", "false");
+}
+
+function closeAccountModal() {
+    if (!accountModal) {
+        return;
+    }
+
+    accountModal.classList.remove("is-open");
+    accountModal.setAttribute("aria-hidden", "true");
+}
+
+function renderHistory(searches) {
+    if (!historyList) {
+        return;
+    }
+
+    if (!searches || !searches.length) {
+        historyList.innerHTML = '<div class="history-empty">Your past symptom checks will appear here.</div>';
+        return;
+    }
+
+    historyList.innerHTML = searches.map(function (search) {
+        var symptoms = search.symptoms || "--";
+        var result = search.result || "--";
+        var timestamp = search.timestamp ? new Date(search.timestamp).toLocaleString() : "";
+        return '' +
+            '<article class="history-card" data-search-id="' + search.id + '">' +
+                '<div class="history-card-top">' +
+                    '<strong>' + symptoms.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</strong>' +
+                    '<button class="history-delete" type="button" data-delete-id="' + search.id + '">Delete</button>' +
+                '</div>' +
+                '<p>' + result.replace(/</g, "&lt;").replace(/>/g, "&gt;") + '</p>' +
+                '<span>' + timestamp + '</span>' +
+            '</article>';
+    }).join("");
+}
+
+function loadSearchHistory() {
+    fetchJson("/api/my/searches", true).then(function (data) {
+        renderHistory(data.searches || []);
+    }).catch(function () {
+        renderHistory([]);
+    });
+}
+
+function deleteSearch(searchId) {
+    deleteJson("/api/my/searches/" + encodeURIComponent(searchId), true).then(function () {
+        loadSearchHistory();
+    }).catch(function (error) {
+        resultPanel.textContent = error.message;
+    });
 }
 
 function saveProfile(event) {
@@ -225,7 +324,9 @@ function checkHealth() {
         email: authSession.user.email,
         symptoms: symptoms,
         result: condition
-    }, true).catch(function () {
+    }, true).then(function () {
+        loadSearchHistory();
+    }).catch(function () {
         return null;
     });
 }
@@ -241,6 +342,7 @@ if (!authSession || !authSession.user) {
     goHome();
 } else {
     updateSummary();
+    loadSearchHistory();
 }
 
 if (analyzeButton) {
@@ -251,10 +353,10 @@ if (profileTrigger) {
     profileTrigger.addEventListener("click", toggleProfileDropdown);
 }
 
-if (editProfileButton) {
-    editProfileButton.addEventListener("click", function () {
+if (myProfileButton) {
+    myProfileButton.addEventListener("click", function () {
         closeProfileDropdown();
-        openProfileModal();
+        openAccountModal();
     });
 }
 
@@ -266,8 +368,30 @@ if (profileForm) {
     profileForm.addEventListener("submit", saveProfile);
 }
 
+if (accountClose) {
+    accountClose.addEventListener("click", closeAccountModal);
+}
+
+if (accountEditProfileButton) {
+    accountEditProfileButton.addEventListener("click", function () {
+        closeAccountModal();
+        openProfileModal();
+    });
+}
+
 document.addEventListener("click", function (event) {
     if (profileTrigger && profileDropdown && !profileTrigger.parentElement.contains(event.target)) {
         closeProfileDropdown();
+    }
+
+    if (accountModal && event.target === accountModal) {
+        closeAccountModal();
+    }
+
+    if (historyList) {
+        var deleteButton = event.target.closest("[data-delete-id]");
+        if (deleteButton) {
+            deleteSearch(deleteButton.getAttribute("data-delete-id"));
+        }
     }
 });

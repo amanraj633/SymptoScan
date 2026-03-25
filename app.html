@@ -24,14 +24,23 @@
                 </button>
 
                 <div class="profile-dropdown" id="profileDropdown" hidden>
-                    <button class="profile-option" id="editProfileButton" type="button">Edit profile</button>
+                    <button class="profile-option" id="myProfileButton" type="button">My profile</button>
                     <button class="profile-option danger" id="signOutButton" type="button">Sign out</button>
                 </div>
             </div>
         </header>
 
         <main class="app-grid">
-            <section class="app-panel app-panel-primary">
+            <aside class="app-panel app-panel-history">
+                <div class="panel-head">
+                    <label class="care-label">Search history</label>
+                </div>
+                <div class="history-list" id="historyList">
+                    <div class="history-empty">Your past symptom checks will appear here.</div>
+                </div>
+            </aside>
+
+            <section class="app-panel app-panel-primary app-panel-workspace">
                 <label class="care-label" for="symptoms">Symptom check</label>
                 <div class="app-input-row">
                     <input id="symptoms" type="text" placeholder="e.g. fever, cough, sore throat">
@@ -39,30 +48,46 @@
                 </div>
                 <div class="app-result" id="result">Describe your symptoms to get a likely condition.</div>
             </section>
-
-            <aside class="app-panel app-panel-secondary">
-                <label class="care-label">Account overview</label>
-                <div class="account-summary">
-                    <div class="summary-row">
-                        <span>Name</span>
-                        <strong id="summaryName">--</strong>
-                    </div>
-                    <div class="summary-row">
-                        <span>Email</span>
-                        <strong id="summaryEmail">--</strong>
-                    </div>
-                    <div class="summary-row">
-                        <span>Blood group</span>
-                        <strong id="summaryBloodGroup">--</strong>
-                    </div>
-                    <div class="summary-row">
-                        <span>Phone</span>
-                        <strong id="summaryPhone">--</strong>
-                    </div>
-                </div>
-                <p class="app-helper">Use the profile menu to update your details or sign out.</p>
-            </aside>
         </main>
+    </div>
+
+    <div class="modal-backdrop" id="accountModal" aria-hidden="true">
+        <div class="terms-modal profile-modal account-modal-card" role="dialog" aria-modal="true" aria-labelledby="accountTitle">
+            <button class="modal-close" id="accountClose" type="button" aria-label="Close profile">
+                x
+            </button>
+            <h3 id="accountTitle">My profile</h3>
+            <p>Your saved account details are shown here. Use edit profile whenever you want to update anything.</p>
+
+            <div class="account-summary">
+                <div class="summary-row">
+                    <span>Name</span>
+                    <strong id="summaryName">--</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Email</span>
+                    <strong id="summaryEmail">--</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Phone</span>
+                    <strong id="summaryPhone">--</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Blood group</span>
+                    <strong id="summaryBloodGroup">--</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Gender</span>
+                    <strong id="summaryGender">--</strong>
+                </div>
+                <div class="summary-row">
+                    <span>Location</span>
+                    <strong id="summaryLocation">--</strong>
+                </div>
+            </div>
+
+            <button class="pill-button primary profile-submit" id="accountEditProfileButton" type="button">Edit profile</button>
+        </div>
     </div>
 
     <div class="modal-backdrop" id="profileModal" aria-hidden="true">

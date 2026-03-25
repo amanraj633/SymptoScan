@@ -2,6 +2,8 @@ const BASE_URL = process.env.SMOKE_BASE_URL || "http://localhost:3000";
 const timestamp = Date.now();
 const testEmail = process.env.SMOKE_TEST_EMAIL || `smoketest_${timestamp}@example.com`;
 const testPassword = process.env.SMOKE_TEST_PASSWORD || "TestPass123";
+const adminEmail = process.env.ADMIN_EMAIL || "admin@symptoscan.com";
+const adminPassword = process.env.ADMIN_PASSWORD || "admin123";
 
 async function requestJson(url, options) {
     const response = await fetch(url, options);
@@ -94,8 +96,32 @@ async function run() {
 
     console.log("Search logged.");
 
-    const usersResponse = await requestJson(`${BASE_URL}/api/admin/users`);
-    const searchesResponse = await requestJson(`${BASE_URL}/api/admin/searches`);
+    const adminLoginResponse = await requestJson(`${BASE_URL}/api/admin/login`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            email: adminEmail,
+            password: adminPassword
+        })
+    });
+
+    const adminToken = adminLoginResponse.session && adminLoginResponse.session.token;
+    if (!adminToken) {
+        throw new Error("Admin login did not return a session token.");
+    }
+
+    const usersResponse = await requestJson(`${BASE_URL}/api/admin/users`, {
+        headers: {
+            Authorization: `Bearer ${adminToken}`
+        }
+    });
+    const searchesResponse = await requestJson(`${BASE_URL}/api/admin/searches`, {
+        headers: {
+            Authorization: `Bearer ${adminToken}`
+        }
+    });
 
     const userFound = usersResponse.users.some(user => user.email === testEmail && user.name === "Smoke Test User");
     const searchFound = searchesResponse.searches.some(search => search.email === testEmail && search.symptoms === "fever, cough");
