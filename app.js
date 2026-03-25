@@ -22,6 +22,7 @@ var summaryLocation = document.getElementById("summaryLocation");
 var AUTH_KEY = "symptoscan_auth_session";
 var VISITOR_KEY = "symptoscan_visitor_id";
 var authSession = loadAuthSession();
+var historyItems = [];
 
 function loadAuthSession() {
     try {
@@ -221,12 +222,14 @@ function renderHistory(searches) {
         return;
     }
 
-    if (!searches || !searches.length) {
+    historyItems = Array.isArray(searches) ? searches.slice() : [];
+
+    if (!historyItems.length) {
         historyList.innerHTML = '<div class="history-empty">Your past symptom checks will appear here.</div>';
         return;
     }
 
-    historyList.innerHTML = searches.map(function (search) {
+    historyList.innerHTML = historyItems.map(function (search) {
         var symptoms = search.symptoms || "--";
         var result = search.result || "--";
         var timestamp = search.timestamp ? new Date(search.timestamp).toLocaleString() : "";
@@ -246,8 +249,20 @@ function loadSearchHistory() {
     fetchJson("/api/my/searches", true).then(function (data) {
         renderHistory(data.searches || []);
     }).catch(function () {
-        renderHistory([]);
+        renderHistory(historyItems);
     });
+}
+
+function prependSearchHistory(search) {
+    if (!search) {
+        return;
+    }
+
+    var nextItems = [search].concat(historyItems.filter(function (item) {
+        return item.id !== search.id;
+    }));
+
+    renderHistory(nextItems);
 }
 
 function deleteSearch(searchId) {
@@ -324,7 +339,8 @@ function checkHealth() {
         email: authSession.user.email,
         symptoms: symptoms,
         result: condition
-    }, true).then(function () {
+    }, true).then(function (data) {
+        prependSearchHistory(data.search);
         loadSearchHistory();
     }).catch(function () {
         return null;
