@@ -7,6 +7,7 @@ var authSubmit = document.getElementById("authSubmit");
 var authNote = document.getElementById("authNote");
 var authStatus = document.getElementById("authStatus");
 var signupFields = document.getElementById("signupFields");
+var authOtpFields = document.getElementById("authOtpFields");
 var requestOtpButton = document.getElementById("requestOtpButton");
 var profileModal = document.getElementById("profileModal");
 var profileForm = document.getElementById("profileForm");
@@ -110,7 +111,7 @@ function updateAuthNote() {
 
     authNote.textContent = authMode === "signup"
         ? "Sign up with email, OTP, and one password that you will use later to log in."
-        : "Private, secure, and designed for quick access.";
+        : "Login OTP will be sent to your registered email address.";
 }
 
 function setAuthMode(mode) {
@@ -124,16 +125,25 @@ function setAuthMode(mode) {
         signupFields.hidden = mode !== "signup";
     }
 
+    if (authOtpFields) {
+        authOtpFields.hidden = false;
+    }
+
     if (authHelper) {
         authHelper.hidden = mode !== "signup";
     }
 
     if (authPassword) {
-        authPassword.placeholder = mode === "signup" ? "Create your password" : "Enter your password";
+        authPassword.value = "";
+        authPassword.placeholder = "Create your password";
     }
 
     if (authSubmit) {
-        authSubmit.textContent = mode === "signup" ? "Sign up with Email" : "Continue with Email";
+        authSubmit.textContent = mode === "signup" ? "Sign up with Email" : "Login with OTP";
+    }
+
+    if (requestOtpButton) {
+        requestOtpButton.textContent = mode === "signup" ? "Get signup OTP" : "Get login OTP";
     }
 
     if (headerLogin) {
@@ -243,6 +253,7 @@ function requestSignupOtp() {
 
     postJson("/api/auth/request-otp", {
         email: email,
+        purpose: authMode === "signup" ? "signup" : "login",
         visitorId: getVisitorId()
     }, false).then(function (data) {
         var message = "OTP generated for " + email + ".";
@@ -273,10 +284,10 @@ function handleAuthSuccess(session, successMessage) {
 
 function submitAuth() {
     var email = authEmail.value.trim();
-    var password = authPassword.value.trim();
+    var otp = authOtp.value.trim();
 
-    if (!email || !password) {
-        setStatus(authStatus, "error", "Email and password are required.");
+    if (!email) {
+        setStatus(authStatus, "error", "Email is required.");
         return;
     }
 
@@ -284,11 +295,11 @@ function submitAuth() {
     setStatus(authStatus, "success", authMode === "signup" ? "Creating your account..." : "Logging you in...");
 
     if (authMode === "signup") {
-        var otp = authOtp.value.trim();
+        var password = authPassword.value.trim();
 
-        if (!otp) {
+        if (!otp || !password) {
             authSubmit.disabled = false;
-            setStatus(authStatus, "error", "Enter the OTP that was sent to your email.");
+            setStatus(authStatus, "error", "Enter the OTP and create your password.");
             return;
         }
 
@@ -308,9 +319,15 @@ function submitAuth() {
         return;
     }
 
-    postJson("/api/auth/login", {
+    if (!otp) {
+        authSubmit.disabled = false;
+        setStatus(authStatus, "error", "Enter the OTP that was sent to your email.");
+        return;
+    }
+
+    postJson("/api/auth/login-otp", {
         email: email,
-        password: password
+        otp: otp
     }, false).then(function (data) {
         handleAuthSuccess(data.session, "Login successful.");
     }).catch(function (error) {

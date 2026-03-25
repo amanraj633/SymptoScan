@@ -452,9 +452,24 @@ function upsertUserInDb(db, payload, request) {
 async function requestOtp(payload, request) {
     const db = readDb();
     const email = normalizeEmail(payload.email);
+    const purpose = normalizeString(payload.purpose) || "signup";
 
     if (!isValidEmail(email)) {
         return { statusCode: 400, body: { ok: false, error: "Valid email is required." } };
+    }
+
+    if (purpose === "login") {
+        const user = db.users.find(item => item.email === email && item.passwordHash);
+        if (!user) {
+            return { statusCode: 400, body: { ok: false, error: "No account found for this email. Please sign up first." } };
+        }
+    }
+
+    if (purpose === "signup") {
+        const user = db.users.find(item => item.email === email && item.passwordHash);
+        if (user) {
+            return { statusCode: 400, body: { ok: false, error: "This email is already registered. Please log in." } };
+        }
     }
 
     const otp = String(Math.floor(100000 + Math.random() * 900000));
@@ -463,7 +478,7 @@ async function requestOtp(payload, request) {
         email,
         otp,
         verified: false,
-        purpose: "signup",
+        purpose,
         createdAt: nowIso(),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
         ipAddress: getClientIp(request)
@@ -481,7 +496,7 @@ async function requestOtp(payload, request) {
     recordEvent(db, {
         type: "otp_requested",
         email,
-        detail: `Signup OTP requested via ${delivery.provider}`
+        detail: `${purpose} OTP requested via ${delivery.provider}`
     });
 
     writeDb(db);
@@ -500,8 +515,8 @@ async function requestOtp(payload, request) {
     };
 }
 
-function findOtpSession(db, email, otp) {
-    return db.otpSessions.find(item => item.email === email && item.otp === otp && !item.verified);
+function findOtpSession(db, email, otp, purpose) {
+    return db.otpSessions.find(item => item.email === email && item.otp === otp && item.purpose === purpose && !item.verified);
 }
 
 function signupUser(payload, request) {
@@ -527,7 +542,7 @@ function signupUser(payload, request) {
         return { statusCode: 400, body: { ok: false, error: "This email is already registered. Please log in." } };
     }
 
-    const otpSession = findOtpSession(db, email, otp);
+    const otpSession = findOtpSession(db, email, otp, "signup");
     if (!otpSession) {
         return { statusCode: 400, body: { ok: false, error: "Invalid OTP." } };
     }
@@ -552,6 +567,56 @@ function signupUser(payload, request) {
         userId: user.id,
         email,
         detail: "Email OTP signup completed"
+    });
+
+    writeDb(db);
+
+    return {
+        statusCode: 200,
+        body: {
+            ok: true,
+            session: {
+                token: session.token,
+                user: sanitizeUserForClient(user)
+            }
+        }
+    };
+}
+
+function loginWithOtp(payload, request) {
+    const db = readDb();
+    const email = normalizeEmail(payload.email);
+    const otp = normalizeString(payload.otp);
+
+    if (!isValidEmail(email) || !otp) {
+        return { statusCode: 400, body: { ok: false, error: "Email and OTP are required." } };
+    }
+
+    const user = db.users.find(item => item.email === email && item.passwordHash);
+    if (!user) {
+        return { statusCode: 400, body: { ok: false, error: "No account found for this email. Please sign up first." } };
+    }
+
+    const otpSession = findOtpSession(db, email, otp, "login");
+    if (!otpSession) {
+        return { statusCode: 400, body: { ok: false, error: "Invalid OTP." } };
+    }
+
+    if (new Date(otpSession.expiresAt).getTime() < Date.now()) {
+        return { statusCode: 400, body: { ok: false, error: "OTP expired. Request a new one." } };
+    }
+
+    otpSession.verified = true;
+    user.lastSeenAt = nowIso();
+    user.ipAddress = getClientIp(request);
+
+    const session = createSession(db, user, request);
+
+    recordEvent(db, {
+        type: "login_success",
+        userId: user.id,
+        email,
+        detail: "User logged in with email OTP"
     });
 
     writeDb(db);
@@ -818,6 +883,13 @@ const server = http.createServer(async (request, response) => {
         if (pathname === "/api/auth/login" && request.method === "POST") {
             const payload = await parseBody(request);
             const result = loginUser(payload, request);
+            sendJson(response, result.statusCode, result.body);
+            return;
+        }
+
+        if (pathname === "/api/auth/login-otp" && request.method === "POST") {
+            const payload = await parseBody(request);
+            const result = loginWithOtp(payload, request);
             sendJson(response, result.statusCode, result.body);
             return;
         }

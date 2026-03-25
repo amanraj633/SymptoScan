@@ -128,21 +128,23 @@
                             <label for="authEmail">Email</label>
                             <input id="authEmail" type="email" placeholder="you@example.com">
 
-                            <div class="signup-only" id="signupFields" hidden>
+                            <div class="auth-otp-fields" id="authOtpFields">
                                 <div class="auth-inline">
                                     <div class="auth-inline-field">
                                         <label for="authOtp">OTP</label>
                                         <input id="authOtp" type="text" inputmode="numeric" placeholder="Enter the OTP">
                                     </div>
-                                    <button class="pill-button ghost auth-otp-button" id="requestOtpButton" type="button">Get OTP</button>
+                                    <button class="pill-button ghost auth-otp-button" id="requestOtpButton" type="button">Get login OTP</button>
                                 </div>
                             </div>
 
-                            <label for="authPassword">Password</label>
-                            <input id="authPassword" type="password" placeholder="Enter your password">
-                            <p class="auth-helper" id="authHelper" hidden>Create one password here. This same password will be used later for login.</p>
+                            <div class="signup-only" id="signupFields" hidden>
+                                <label for="authPassword">Password</label>
+                                <input id="authPassword" type="password" placeholder="Create your password">
+                                <p class="auth-helper" id="authHelper" hidden>Create one password here. This same password will be used later for login.</p>
+                            </div>
 
-                            <button class="pill-button secondary auth-submit" id="authSubmit" type="button">Continue with Email</button>
+                            <button class="pill-button secondary auth-submit" id="authSubmit" type="button">Login with OTP</button>
                         </form>
 
                         <div class="auth-status" id="authStatus" hidden></div>
