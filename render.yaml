@@ -21,3 +21,17 @@ services:
         sync: false
       - key: OTP_FROM_NAME
         value: SymptoScan
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash
+      - key: INFERMEDICA_APP_ID
+        sync: false
+      - key: INFERMEDICA_APP_KEY
+        sync: false
+      - key: GOOGLE_MAPS_API_KEY
+        sync: false

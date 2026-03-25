@@ -10,6 +10,9 @@ var authPasswordGroup = document.getElementById("authPasswordGroup");
 var signupFields = document.getElementById("signupFields");
 var authOtpFields = document.getElementById("authOtpFields");
 var requestOtpButton = document.getElementById("requestOtpButton");
+var loginOptions = document.getElementById("loginOptions");
+var loginPasswordMode = document.getElementById("loginPasswordMode");
+var loginOtpMode = document.getElementById("loginOtpMode");
 var profileModal = document.getElementById("profileModal");
 var profileForm = document.getElementById("profileForm");
 var profileStatus = document.getElementById("profileStatus");
@@ -26,6 +29,7 @@ var loginRequiredAction = document.getElementById("loginRequiredAction");
 var VISITOR_KEY = "symptoscan_visitor_id";
 var AUTH_KEY = "symptoscan_auth_session";
 var authMode = "login";
+var loginMethod = "password";
 var authSession = loadAuthSession();
 
 function getVisitorId() {
@@ -110,9 +114,61 @@ function updateAuthNote() {
         return;
     }
 
+    if (authMode === "login" && loginMethod === "otp") {
+        authNote.textContent = "Request an OTP and log in from your email without using your password.";
+        return;
+    }
+
     authNote.textContent = authMode === "signup"
         ? "Sign up with email, OTP, and one password that you will use later to log in."
         : "Use the same email and password you created during sign up.";
+}
+
+function updateLoginMethodUi() {
+    var isSignup = authMode === "signup";
+    var useOtp = !isSignup && loginMethod === "otp";
+
+    if (loginOptions) {
+        loginOptions.hidden = isSignup;
+    }
+
+    if (loginPasswordMode) {
+        loginPasswordMode.classList.toggle("is-active", !useOtp);
+    }
+
+    if (loginOtpMode) {
+        loginOtpMode.classList.toggle("is-active", useOtp);
+    }
+
+    if (authOtpFields) {
+        authOtpFields.hidden = !isSignup && !useOtp;
+    }
+
+    if (authPasswordGroup) {
+        authPasswordGroup.hidden = useOtp;
+    }
+
+    if (authSubmit) {
+        if (isSignup) {
+            authSubmit.textContent = "Sign up with Email";
+        } else {
+            authSubmit.textContent = useOtp ? "Log in with OTP" : "Log in with Email";
+        }
+    }
+
+    if (requestOtpButton) {
+        requestOtpButton.textContent = isSignup ? "Get OTP" : "Send Login OTP";
+    }
+}
+
+function setLoginMethod(method) {
+    loginMethod = method === "otp" ? "otp" : "password";
+    if (authOtp) {
+        authOtp.value = "";
+    }
+    updateLoginMethodUi();
+    updateAuthNote();
+    setStatus(authStatus, "success", "");
 }
 
 function setAuthMode(mode) {
@@ -162,6 +218,13 @@ function setAuthMode(mode) {
 
     if (authOtp) {
         authOtp.value = "";
+    }
+
+    if (mode === "login") {
+        setLoginMethod(loginMethod);
+    } else {
+        loginMethod = "password";
+        updateLoginMethodUi();
     }
 
     setStatus(authStatus, "success", "");
@@ -323,8 +386,33 @@ function submitAuth() {
     }
 
     if (!password) {
-        authSubmit.disabled = false;
-        setStatus(authStatus, "error", "Enter your password to log in.");
+        if (loginMethod !== "otp") {
+            authSubmit.disabled = false;
+            setStatus(authStatus, "error", "Enter your password to log in.");
+            return;
+        }
+    }
+
+    if (loginMethod === "otp") {
+        var loginOtp = authOtp.value.trim();
+
+        if (!loginOtp) {
+            authSubmit.disabled = false;
+            setStatus(authStatus, "error", "Enter the OTP that was sent to your email.");
+            return;
+        }
+
+        postJson("/api/auth/login-otp", {
+            email: email,
+            otp: loginOtp
+        }, false).then(function (data) {
+            handleAuthSuccess(data.session, "Login successful.");
+        }).catch(function (error) {
+            setStatus(authStatus, "error", error.message);
+        }).finally(function () {
+            authSubmit.disabled = false;
+        });
+
         return;
     }
 
@@ -401,6 +489,18 @@ if (authTabs.length) {
 
 if (requestOtpButton) {
     requestOtpButton.addEventListener("click", requestSignupOtp);
+}
+
+if (loginPasswordMode) {
+    loginPasswordMode.addEventListener("click", function () {
+        setLoginMethod("password");
+    });
+}
+
+if (loginOtpMode) {
+    loginOtpMode.addEventListener("click", function () {
+        setLoginMethod("otp");
+    });
 }
 
 if (authSubmit) {

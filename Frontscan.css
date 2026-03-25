@@ -422,6 +422,31 @@ h1 {
     box-shadow: 0 10px 20px rgba(20, 53, 47, 0.14);
 }
 
+.auth-login-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.auth-login-options[hidden] {
+    display: none;
+}
+
+.auth-mini-tab {
+    border: 1px solid rgba(255, 251, 244, 0.2);
+    border-radius: 14px;
+    padding: 10px 12px;
+    background: rgba(255, 251, 244, 0.06);
+    color: rgba(255, 250, 245, 0.82);
+    font: 700 0.9rem/1 "DM Sans", Arial, sans-serif;
+    cursor: pointer;
+}
+
+.auth-mini-tab.is-active {
+    background: rgba(255, 251, 244, 0.92);
+    color: var(--ink);
+}
+
 .auth-form {
     display: grid;
     gap: 12px;

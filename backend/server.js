@@ -4,6 +4,8 @@ const path = require("path");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 
+loadLocalEnvFile();
+
 const ROOT_DIR = path.resolve(__dirname, "..");
 const DATA_DIR = path.join(__dirname, "data");
 const DB_FILE = path.join(DATA_DIR, "db.json");
@@ -16,6 +18,11 @@ const GMAIL_APP_PASSWORD = (process.env.GMAIL_APP_PASSWORD || "").trim();
 const OTP_FROM_NAME = (process.env.OTP_FROM_NAME || "SymptoScan").trim();
 const ADMIN_EMAIL = normalizeAdminValue(process.env.ADMIN_EMAIL) || "admin@symptoscan.com";
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "admin123").trim();
+const GEMINI_API_KEY = (process.env.GEMINI_API_KEY || "").trim();
+const GEMINI_MODEL = (process.env.GEMINI_MODEL || "gemini-2.5-flash").trim();
+const INFERMEDICA_APP_ID = (process.env.INFERMEDICA_APP_ID || "").trim();
+const INFERMEDICA_APP_KEY = (process.env.INFERMEDICA_APP_KEY || "").trim();
+const GOOGLE_MAPS_API_KEY = (process.env.GOOGLE_MAPS_API_KEY || "").trim();
 
 let gmailTransporter = null;
 
@@ -32,6 +39,37 @@ const MIME_TYPES = {
     ".svg": "image/svg+xml",
     ".ico": "image/x-icon"
 };
+
+function loadLocalEnvFile() {
+    const envFile = path.resolve(__dirname, "..", ".env");
+    if (!fs.existsSync(envFile)) {
+        return;
+    }
+
+    const envContent = fs.readFileSync(envFile, "utf8");
+    envContent.split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith("#")) {
+            return;
+        }
+
+        const separatorIndex = trimmed.indexOf("=");
+        if (separatorIndex <= 0) {
+            return;
+        }
+
+        const key = trimmed.slice(0, separatorIndex).trim();
+        let value = trimmed.slice(separatorIndex + 1).trim();
+
+        if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+            value = value.slice(1, -1);
+        }
+
+        if (!(key in process.env)) {
+            process.env[key] = value;
+        }
+    });
+}
 
 function ensureStorage() {
     if (!fs.existsSync(DATA_DIR)) {
@@ -204,6 +242,347 @@ function normalizeString(value) {
 
 function normalizeEmail(value) {
     return normalizeString(value).toLowerCase();
+}
+
+function normalizeSex(value) {
+    const normalized = normalizeString(value).toLowerCase();
+    if (normalized === "male") {
+        return "male";
+    }
+
+    if (normalized === "female") {
+        return "female";
+    }
+
+    return "";
+}
+
+function normalizeAgeValue(value) {
+    const age = Number.parseInt(String(value || "").trim(), 10);
+    if (!Number.isFinite(age) || age <= 0) {
+        return 0;
+    }
+
+    return age;
+}
+
+function createInterviewId() {
+    return crypto.randomUUID ? crypto.randomUUID() : createId("interview");
+}
+
+async function readJsonResponse(response) {
+    const text = await response.text();
+    if (!text) {
+        return {};
+    }
+
+    try {
+        return JSON.parse(text);
+    } catch (error) {
+        throw new Error("Received an invalid JSON response from an external service.");
+    }
+}
+
+async function extractSymptomsWithGemini(symptoms) {
+    if (!GEMINI_API_KEY) {
+        return null;
+    }
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(GEMINI_MODEL)}:generateContent`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY
+        },
+        body: JSON.stringify({
+            contents: [
+                {
+                    parts: [
+                        {
+                            text: [
+                                "Extract only the medical symptoms from the text below.",
+                                "Return plain text as a short comma-separated list with no explanation.",
+                                `Text: ${symptoms}`
+                            ].join("\n")
+                        }
+                    ]
+                }
+            ]
+        })
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+        throw new Error((data && data.error && data.error.message) || "Gemini symptom extraction failed.");
+    }
+
+    const candidate = data.candidates && data.candidates[0];
+    const part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];
+    const text = part && typeof part.text === "string" ? part.text.trim() : "";
+    return text || null;
+}
+
+function buildInfermedicaHeaders(interviewId) {
+    return {
+        "App-Id": INFERMEDICA_APP_ID,
+        "App-Key": INFERMEDICA_APP_KEY,
+        "Interview-Id": interviewId,
+        "Content-Type": "application/json"
+    };
+}
+
+async function parseSymptomsWithInfermedica(symptomsText, ageValue, sex) {
+    const interviewId = createInterviewId();
+    const parseResponse = await fetch("https://api.infermedica.com/v3/parse", {
+        method: "POST",
+        headers: buildInfermedicaHeaders(interviewId),
+        body: JSON.stringify({
+            text: symptomsText,
+            age: { value: ageValue },
+            sex: sex || undefined,
+            concept_types: ["symptom"],
+            correct_spelling: true
+        })
+    });
+
+    const parseData = await readJsonResponse(parseResponse);
+    if (!parseResponse.ok) {
+        throw new Error((parseData && parseData.message) || "Infermedica parse failed.");
+    }
+
+    const evidence = (parseData.mentions || []).map(function (mention) {
+        return {
+            id: mention.id,
+            choice_id: mention.choice_id,
+            source: "initial"
+        };
+    }).filter(function (mention) {
+        return mention.id && mention.choice_id;
+    });
+
+    if (!evidence.length || !sex) {
+        return {
+            interviewId,
+            parseData,
+            diagnosisData: null,
+            evidence
+        };
+    }
+
+    const diagnosisResponse = await fetch("https://api.infermedica.com/v3/diagnosis", {
+        method: "POST",
+        headers: buildInfermedicaHeaders(interviewId),
+        body: JSON.stringify({
+            sex,
+            age: {
+                value: ageValue
+            },
+            evidence
+        })
+    });
+
+    const diagnosisData = await readJsonResponse(diagnosisResponse);
+    if (!diagnosisResponse.ok) {
+        throw new Error((diagnosisData && diagnosisData.message) || "Infermedica diagnosis failed.");
+    }
+
+    return {
+        interviewId,
+        parseData,
+        diagnosisData,
+        evidence
+    };
+}
+
+async function findNearbyDoctors(location) {
+    if (!GOOGLE_MAPS_API_KEY || !location) {
+        return [];
+    }
+
+    const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+            "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.rating,places.googleMapsUri"
+        },
+        body: JSON.stringify({
+            textQuery: `doctor near ${location}`,
+            maxResultCount: 5
+        })
+    });
+
+    const data = await readJsonResponse(response);
+    if (!response.ok) {
+        throw new Error((data && data.error && data.error.message) || "Google Places doctor search failed.");
+    }
+
+    return (data.places || []).map(function (place) {
+        return {
+            name: place.displayName && place.displayName.text ? place.displayName.text : "Doctor",
+            address: place.formattedAddress || "",
+            rating: place.rating || null,
+            mapsUrl: place.googleMapsUri || ""
+        };
+    });
+}
+
+function buildFallbackCondition(symptoms) {
+    const text = symptoms.toLowerCase();
+    if (text.includes("chest pain") || text.includes("trouble breathing") || text.includes("shortness of breath")) {
+        return "Respiratory distress or a serious chest-related condition";
+    }
+
+    if (text.includes("fever") || text.includes("cough")) {
+        return "Flu or viral fever";
+    }
+
+    if (text.includes("headache") || text.includes("fatigue")) {
+        return "Migraine, stress-related fatigue, or viral weakness";
+    }
+
+    if (text.includes("stomach") || text.includes("nausea") || text.includes("vomit") || text.includes("vomiting")) {
+        return "Stomach infection or food poisoning";
+    }
+
+    if (text.includes("sore throat") || text.includes("throat pain")) {
+        return "Throat infection or tonsillitis";
+    }
+
+    if (text.includes("runny nose") || text.includes("sneezing") || text.includes("cold")) {
+        return "Common cold or seasonal allergy";
+    }
+
+    if (text.includes("body pain") || text.includes("body ache") || text.includes("muscle pain")) {
+        return "Viral fever or body inflammation";
+    }
+
+    return "Common viral illness";
+}
+
+function formatAnalysisResult(summary) {
+    const lines = [];
+
+    lines.push(`Likely condition: ${summary.primaryCondition}`);
+
+    if (summary.cleanedSymptoms) {
+        lines.push(`Symptoms recognized: ${summary.cleanedSymptoms}`);
+    }
+
+    if (summary.matches && summary.matches.length) {
+        lines.push("");
+        lines.push("Top possible causes:");
+        summary.matches.slice(0, 3).forEach(function (match, index) {
+            lines.push(`${index + 1}. ${match.name}${match.probabilityLabel ? ` (${match.probabilityLabel})` : ""}`);
+        });
+    }
+
+    if (summary.doctors && summary.doctors.length) {
+        lines.push("");
+        lines.push("Nearby doctors:");
+        summary.doctors.forEach(function (doctor, index) {
+            lines.push(`${index + 1}. ${doctor.name}${doctor.address ? ` - ${doctor.address}` : ""}`);
+        });
+    }
+
+    lines.push("");
+    lines.push("This is informational support only and not a medical diagnosis.");
+
+    return lines.join("\n");
+}
+
+async function analyzeSymptoms(payload, request) {
+    const symptoms = normalizeString(payload.symptoms);
+    if (!symptoms) {
+        return { statusCode: 400, body: { ok: false, error: "Symptoms are required." } };
+    }
+
+    const db = readDb();
+    const auth = getAuthenticatedUser(db, request);
+    const user = auth ? auth.user : null;
+    const location = normalizeString(payload.location) || (user && normalizeString(user.location)) || (user && user.profile && normalizeString(user.profile.location));
+    const ageValue = normalizeAgeValue(payload.age) || (user && normalizeAgeValue(user.age)) || (user && user.profile && normalizeAgeValue(user.profile.age));
+    const sex = normalizeSex(payload.gender) || (user && normalizeSex(user.gender)) || (user && user.profile && normalizeSex(user.profile.gender));
+
+    const summary = {
+        primaryCondition: buildFallbackCondition(symptoms),
+        cleanedSymptoms: symptoms,
+        matches: [],
+        doctors: [],
+        provider: "fallback",
+        usedGemini: false,
+        usedInfermedica: false,
+        usedGooglePlaces: false,
+        missingProfileData: {
+            age: !ageValue,
+            gender: !sex,
+            location: !location
+        }
+    };
+
+    try {
+        const cleanedSymptoms = await extractSymptomsWithGemini(symptoms);
+        if (cleanedSymptoms) {
+            summary.cleanedSymptoms = cleanedSymptoms;
+            summary.usedGemini = true;
+        }
+    } catch (error) {
+        summary.geminiError = error.message;
+    }
+
+    if (INFERMEDICA_APP_ID && INFERMEDICA_APP_KEY && ageValue) {
+        try {
+            const infermedica = await parseSymptomsWithInfermedica(summary.cleanedSymptoms, ageValue, sex);
+            const conditions = infermedica.diagnosisData && Array.isArray(infermedica.diagnosisData.conditions)
+                ? infermedica.diagnosisData.conditions
+                : [];
+
+            if (conditions.length) {
+                summary.matches = conditions.slice(0, 3).map(function (condition) {
+                    return {
+                        name: condition.common_name || condition.name || "Unknown condition",
+                        probability: condition.probability || null,
+                        probabilityLabel: typeof condition.probability === "number"
+                            ? `${Math.round(condition.probability * 100)}%`
+                            : ""
+                    };
+                });
+                summary.primaryCondition = summary.matches[0].name;
+                summary.provider = "infermedica";
+                summary.usedInfermedica = true;
+            }
+        } catch (error) {
+            summary.infermedicaError = error.message;
+        }
+    }
+
+    if (location) {
+        try {
+            summary.doctors = await findNearbyDoctors(location);
+            summary.usedGooglePlaces = summary.doctors.length > 0;
+        } catch (error) {
+            summary.googlePlacesError = error.message;
+        }
+    }
+
+    const formattedResult = formatAnalysisResult(summary);
+    const logPayload = {
+        visitorId: normalizeString(payload.visitorId),
+        email: user ? user.email : normalizeEmail(payload.email),
+        symptoms,
+        result: formattedResult
+    };
+    const logResult = logSearch(logPayload, request);
+
+    return {
+        statusCode: 200,
+        body: {
+            ok: true,
+            analysis: summary,
+            result: formattedResult,
+            search: logResult.body.search
+        }
+    };
 }
 
 function isValidEmail(email) {
@@ -1037,6 +1416,13 @@ const server = http.createServer(async (request, response) => {
         if (pathname === "/api/searches" && request.method === "POST") {
             const payload = await parseBody(request);
             const result = logSearch(payload, request);
+            sendJson(response, result.statusCode, result.body);
+            return;
+        }
+
+        if (pathname === "/api/symptom-check" && request.method === "POST") {
+            const payload = await parseBody(request);
+            const result = await analyzeSymptoms(payload, request);
             sendJson(response, result.statusCode, result.body);
             return;
         }

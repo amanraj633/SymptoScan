@@ -313,37 +313,21 @@ function checkHealth() {
         return;
     }
 
-    var text = symptoms.toLowerCase();
-    var condition = "Likely condition: Common viral illness";
+    resultPanel.textContent = "Analyzing your symptoms...";
 
-    if (text.includes("chest pain") || text.includes("trouble breathing") || text.includes("shortness of breath")) {
-        condition = "Likely condition: Respiratory distress or a serious chest-related condition";
-    } else if (text.includes("fever") || text.includes("cough")) {
-        condition = "Likely condition: Flu or viral fever";
-    } else if (text.includes("headache") || text.includes("fatigue")) {
-        condition = "Likely condition: Migraine, stress-related fatigue, or viral weakness";
-    } else if (text.includes("stomach") || text.includes("nausea") || text.includes("vomit") || text.includes("vomiting")) {
-        condition = "Likely condition: Stomach infection or food poisoning";
-    } else if (text.includes("sore throat") || text.includes("throat pain")) {
-        condition = "Likely condition: Throat infection or tonsillitis";
-    } else if (text.includes("runny nose") || text.includes("sneezing") || text.includes("cold")) {
-        condition = "Likely condition: Common cold or seasonal allergy";
-    } else if (text.includes("body pain") || text.includes("body ache") || text.includes("muscle pain")) {
-        condition = "Likely condition: Viral fever or body inflammation";
-    }
-
-    resultPanel.textContent = condition;
-
-    postJson("/api/searches", {
+    postJson("/api/symptom-check", {
         visitorId: getVisitorId(),
         email: authSession.user.email,
         symptoms: symptoms,
-        result: condition
+        age: authSession.user.profile && authSession.user.profile.age,
+        gender: authSession.user.profile && authSession.user.profile.gender,
+        location: authSession.user.profile && authSession.user.profile.location
     }, true).then(function (data) {
+        resultPanel.textContent = data.result || "No analysis available.";
         prependSearchHistory(data.search);
         loadSearchHistory();
-    }).catch(function () {
-        return null;
+    }).catch(function (error) {
+        resultPanel.textContent = error.message;
     });
 }
 

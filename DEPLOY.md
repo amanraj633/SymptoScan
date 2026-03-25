@@ -44,8 +44,32 @@ Set these environment variables in Render `Settings -> Environment`:
 - `RESEND_FROM_EMAIL`
 - `GMAIL_EMAIL`
 - `GMAIL_APP_PASSWORD`
+- `ADMIN_EMAIL`
+- `ADMIN_PASSWORD`
+- `GEMINI_API_KEY`
+- `GEMINI_MODEL`
+- `INFERMEDICA_APP_ID`
+- `INFERMEDICA_APP_KEY`
+- `GOOGLE_MAPS_API_KEY`
 
 Use one provider at a time.
+
+### External medical APIs
+
+The dashboard can now use these server-side integrations without exposing keys in the frontend:
+
+- `GEMINI_API_KEY` to clean the user symptom text
+- `INFERMEDICA_APP_ID`
+- `INFERMEDICA_APP_KEY`
+- `GOOGLE_MAPS_API_KEY` to find nearby doctors from the saved profile location
+
+The backend endpoint used by the dashboard is:
+
+- `POST /api/symptom-check`
+
+Infermedica diagnosis URL used by the backend:
+
+- `https://api.infermedica.com/v3/diagnosis`
 
 #### Option A: Resend
 
